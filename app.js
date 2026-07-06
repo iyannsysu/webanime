@@ -133,7 +133,7 @@ function hideLoader() { document.getElementById('loader').classList.remove('acti
 // Navigation
 function showHome() {
     hideAll();
-    show('heroSection', 'latestSection');
+    show('heroSection', 'ongoingHomeSection', 'popularSection', 'latestSection');
     setActive('nav-home');
     loadHome();
     closeMob();
@@ -189,8 +189,9 @@ function showStream(slug, series, ep) {
 }
 
 function hideAll() {
-    ['heroSection', 'latestSection', 'ongoingSection', 'scheduleSection',
-     'animeListSection', 'searchSection', 'detailSection', 'streamSection'].forEach(id => {
+    ['heroSection', 'ongoingHomeSection', 'popularSection', 'latestSection',
+     'ongoingSection', 'scheduleSection', 'animeListSection', 'searchSection',
+     'detailSection', 'streamSection'].forEach(id => {
         document.getElementById(id).style.display = 'none';
     });
 }
@@ -246,18 +247,44 @@ async function api(endpoint, params = {}) {
 }
 
 // Loaders
-async function loadHome(page = 1) {
-    const d = await api('/home', { page });
+async function loadHome() {
+    // Load all home sections
+    loadOngoingHome();
+    loadPopular();
+    loadLatest();
+    loadHero();
+}
+
+async function loadHero() {
+    const d = await api('/ongoing');
+    if (d?.data) renderHero(d.data.slice(0, 6));
+}
+
+async function loadOngoingHome() {
+    const d = await api('/ongoing');
     if (d?.data) {
-        renderCards(d.data, 'latestAnime');
-        loadHero(d.data.slice(0, 6));
+        const sorted = [...d.data].sort((a, b) => (b.id || 0) - (a.id || 0));
+        renderCards(sorted.slice(0, 12), 'ongoingHomeAnime');
     }
+}
+
+async function loadPopular() {
+    const d = await api('/home', { page: 1 });
+    if (d?.data) {
+        // Sort by score for popular
+        const sorted = [...d.data].sort((a, b) => parseFloat(b.score || 0) - parseFloat(a.score || 0));
+        renderCards(sorted.slice(0, 12), 'popularAnime');
+    }
+}
+
+async function loadLatest(page = 1) {
+    const d = await api('/home', { page });
+    if (d?.data) renderCards(d.data, 'latestAnime');
 }
 
 async function loadOngoing() {
     const d = await api('/ongoing');
     if (d?.data) {
-        // Sort by id descending (newest first)
         const sorted = [...d.data].sort((a, b) => (b.id || 0) - (a.id || 0));
         renderCards(sorted, 'ongoingAnime');
     }
@@ -269,8 +296,17 @@ async function loadSchedule() {
 }
 
 async function loadList() {
+    // anime-list returns grouped data directly (not data.data)
     const d = await api('/anime-list');
-    if (d?.data) renderList(d.data);
+    if (d) {
+        // API returns { "#": [...], "A": [...], "B": [...], ... }
+        const letters = Object.keys(d).filter(k => k !== 'author' && k !== 'contact' && k !== 'status');
+        if (letters.length) {
+            renderListGrouped(d, letters);
+        } else {
+            document.getElementById('animeList').innerHTML = '<div class="error-box"><i class="fas fa-list"></i><h3>Daftar kosong</h3></div>';
+        }
+    }
 }
 
 async function loadSearch(q) {
@@ -278,7 +314,17 @@ async function loadSearch(q) {
     if (d?.data) {
         let all = [];
         d.data.forEach(g => { if (g.result) all = all.concat(g.result); });
-        renderCards(all, 'searchResults');
+        if (all.length) {
+            renderCards(all, 'searchResults');
+        } else {
+            document.getElementById('searchResults').innerHTML = `
+                <div class="error-box" style="grid-column:1/-1">
+                    <i class="fas fa-search"></i>
+                    <h3>Anime tidak ditemukan</h3>
+                    <p>Coba kata kunci lain</p>
+                </div>
+            `;
+        }
     }
 }
 
@@ -298,6 +344,8 @@ async function loadStream(slug, series, ep) {
 // Render Hero
 function renderHero(list) {
     const el = document.getElementById('heroSlider');
+    if (!list?.length) return;
+    
     el.innerHTML = list.map((a, i) => {
         const title = a.judul || a.title || '';
         const cover = fixImg(a.cover);
@@ -348,7 +396,7 @@ function goSlide(i, e) {
 function renderCards(list, containerId) {
     const c = document.getElementById(containerId);
     if (!list?.length) {
-        c.innerHTML = `<div class="error-box" style="grid-column:1/-1"><i class="fas fa-inbox"></i><h3>Tidak ada data</h3><p>Anime tidak ditemukan</p></div>`;
+        c.innerHTML = `<div class="error-box" style="grid-column:1/-1"><i class="fas fa-inbox"></i><h3>Tidak ada data</h3></div>`;
         return;
     }
     c.innerHTML = list.map((a, i) => {
@@ -383,7 +431,32 @@ function renderCards(list, containerId) {
     }).join('');
 }
 
-// Render Schedule - FIXED
+// Render Grouped List (anime-list API)
+function renderListGrouped(data, letters) {
+    const c = document.getElementById('animeList');
+    letters.sort();
+    
+    c.innerHTML = letters.map(letter => {
+        const items = data[letter] || [];
+        if (!items.length) return '';
+        
+        return `
+            <div class="list-group">
+                <div class="list-letter">${letter}</div>
+                <div class="list-items">
+                    ${items.map(a => `
+                        <div class="list-item" onclick="showDetail('${a.url || a.id}')">
+                            <img src="${fixImg(a.cover)}" class="list-item-img" onerror="imgError(this)">
+                            <span>${a.judul || a.title || ''}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render Schedule
 function renderSchedule(data) {
     const c = document.getElementById('scheduleAnime');
     if (!data?.length) {
@@ -391,24 +464,20 @@ function renderSchedule(data) {
         return;
     }
 
-    // Get current day index (0=Senin, 6=Minggu)
     const dayOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     const today = new Date();
-    const todayIdx = (today.getDay() + 6) % 7; // Convert JS day (0=Sun) to Mon=0
+    const todayIdx = (today.getDay() + 6) % 7;
 
-    // Sort so today comes first
     const sorted = [...data].sort((a, b) => {
-        const aIdx = dayOrder.indexOf(a.day || a.hari || '');
-        const bIdx = dayOrder.indexOf(b.day || b.hari || '');
-        const aShift = (aIdx - todayIdx + 7) % 7;
-        const bShift = (bIdx - todayIdx + 7) % 7;
-        return aShift - bShift;
+        const aIdx = dayOrder.indexOf(a.day || '');
+        const bIdx = dayOrder.indexOf(b.day || '');
+        return ((aIdx - todayIdx + 7) % 7) - ((bIdx - todayIdx + 7) % 7);
     });
 
-    c.innerHTML = sorted.map((day, dayI) => {
-        const name = day.day || day.hari || day.title || '';
+    c.innerHTML = sorted.map(day => {
+        const name = day.day || '';
         const date = day.date || '';
-        const list = day.animeList || day.anime || day.list || day.data || [];
+        const list = day.animeList || [];
         const isToday = dayOrder.indexOf(name) === todayIdx;
 
         return `
@@ -420,11 +489,11 @@ function renderSchedule(data) {
                 </div>
                 <div class="schedule-body">
                     ${list.length ? list.map(a => `
-                        <div class="schedule-item" onclick="showDetail('${a.link || a.url || a.slug || a.id}')">
-                            <img src="${fixImg(a.cover || a.thumbnail)}" alt="${a.anime_name || a.judul || a.title}" class="schedule-img" onerror="imgError(this)">
+                        <div class="schedule-item" onclick="showDetail('${a.link || a.url || a.id}')">
+                            <img src="${fixImg(a.cover)}" alt="${a.anime_name || ''}" class="schedule-img" onerror="imgError(this)">
                             <div class="schedule-info">
-                                <h4>${a.anime_name || a.judul || a.title || ''}</h4>
-                                <p><i class="fas fa-clock"></i> ${a.lastup || a.time || a.waktu || 'Upcoming'}</p>
+                                <h4>${a.anime_name || ''}</h4>
+                                <p><i class="fas fa-clock"></i> ${a.lastup || 'Upcoming'}</p>
                             </div>
                         </div>
                     `).join('') : '<p style="color:var(--text3);padding:12px;">Tidak ada jadwal</p>'}
@@ -432,32 +501,6 @@ function renderSchedule(data) {
             </div>
         `;
     }).join('');
-}
-
-// Render List
-function renderList(data) {
-    const c = document.getElementById('animeList');
-    if (!data?.length) {
-        c.innerHTML = `<div class="error-box"><i class="fas fa-list"></i><h3>Daftar kosong</h3></div>`;
-        return;
-    }
-    const grouped = {};
-    data.forEach(a => {
-        const t = (a.judul || a.title || '').trim();
-        const letter = t.charAt(0).toUpperCase() || '#';
-        if (!grouped[letter]) grouped[letter] = [];
-        grouped[letter].push(a);
-    });
-    c.innerHTML = Object.keys(grouped).sort().map(letter => `
-        <div class="list-group">
-            <div class="list-letter">${letter}</div>
-            <div class="list-items">
-                ${grouped[letter].map(a => `
-                    <div class="list-item" onclick="showDetail('${a.url || a.slug || a.id}')">${a.judul || a.title || ''}</div>
-                `).join('')}
-            </div>
-        </div>
-    `).join('');
 }
 
 // Render Detail
