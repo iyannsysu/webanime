@@ -658,10 +658,15 @@ body {
     text-align: center;
 }
 
-.episode-btn:hover {
+.episode-btn:hover,
+.episode-btn.active {
     background: var(--primary);
     color: var(--white);
     border-color: var(--primary);
+}
+
+.episode-btn.active {
+    box-shadow: 0 0 0 2px var(--primary-dark);
 }
 
 .back-btn {
