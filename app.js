@@ -452,21 +452,48 @@ function renderStream(streamData, series, currentEpisode) {
         return;
     }
 
-    // Get stream URL from various possible fields
+    // Extract video URL from API response
     let streamUrl = '';
-    if (streamData.data) {
-        const d = streamData.data;
-        streamUrl = d.url || d.stream || d.video || d.embed || d.link || d.iframe || '';
-        if (d.servers && d.servers.length > 0) {
-            streamUrl = d.servers[0].url || d.servers[0].stream || streamUrl;
+    let resolutions = [];
+    let currentReso = '720p';
+    
+    // Handle data array structure
+    const streamInfo = streamData.data ? (Array.isArray(streamData.data) ? streamData.data[0] : streamData.data) : streamData;
+    
+    if (streamInfo && streamInfo.streams) {
+        // Get available resolutions
+        if (streamInfo.reso) {
+            resolutions = streamInfo.reso;
         }
-    } else {
-        streamUrl = streamData.url || streamData.stream || streamData.video || streamData.embed || streamData.link || '';
+        
+        // Get 720p first, then 480p as fallback
+        if (streamInfo.streams['720p'] && streamInfo.streams['720p'].length > 0) {
+            streamUrl = streamInfo.streams['720p'][0].link;
+            currentReso = '720p';
+        } else if (streamInfo.streams['480p'] && streamInfo.streams['480p'].length > 0) {
+            streamUrl = streamInfo.streams['480p'][0].link;
+            currentReso = '480p';
+        } else if (streamInfo.streams['1080p'] && streamInfo.streams['1080p'].length > 0) {
+            streamUrl = streamInfo.streams['1080p'][0].link;
+            currentReso = '1080p';
+        } else {
+            // Try any available resolution
+            const resoKeys = Object.keys(streamInfo.streams);
+            if (resoKeys.length > 0 && streamInfo.streams[resoKeys[0]].length > 0) {
+                streamUrl = streamInfo.streams[resoKeys[0]][0].link;
+                currentReso = resoKeys[0];
+            }
+        }
     }
     
-    const episodes = streamData.episodes || streamData.data?.episodes || [];
-    const servers = streamData.servers || streamData.data?.servers || streamData.data?.server || [];
-    const title = streamData.title || streamData.data?.title || streamData.data?.judul || `Episode ${currentEpisode}`;
+    // Fallback: try other fields
+    if (!streamUrl) {
+        streamUrl = streamInfo.url || streamInfo.stream || streamInfo.video || streamInfo.embed || streamInfo.link || '';
+    }
+    
+    const episodes = streamData.episodes || streamInfo?.episodes || [];
+    const servers = streamData.servers || streamInfo?.servers || [];
+    const title = streamData.title || streamInfo?.title || streamInfo?.judul || `Episode ${currentEpisode}`;
 
     container.innerHTML = `
         <button class="back-btn" onclick="showAnimeDetail('${series}')">
@@ -474,27 +501,55 @@ function renderStream(streamData, series, currentEpisode) {
         </button>
         <div class="stream-video">
             ${streamUrl ? (
-                streamUrl.includes('youtube') || streamUrl.includes('youtu.be') ? 
-                    `<iframe src="${streamUrl}" allowfullscreen></iframe>` :
                 streamUrl.includes('.m3u8') || streamUrl.includes('.mp4') ?
-                    `<video controls autoplay><source src="${streamUrl}" type="video/mp4">Browser tidak mendukung video player</video>` :
-                    `<iframe src="${streamUrl}" allowfullscreen></iframe>`
-            ) : `<div class="no-image" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;"><i class="fas fa-video-slash" style="font-size:3rem;margin-bottom:15px;"></i><p>Video tidak tersedia</p></div>`}
+                    `<video id="videoPlayer" controls autoplay style="width:100%;height:100%;background:#000;">
+                        <source src="${streamUrl}" type="video/mp4">
+                        Browser tidak mendukung video player
+                    </video>` :
+                    `<iframe src="${streamUrl}" allowfullscreen style="width:100%;height:100%;border:none;"></iframe>`
+            ) : `<div class="no-image" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a2e;">
+                    <i class="fas fa-video-slash" style="font-size:4rem;color:#ff6b6b;margin-bottom:20px;"></i>
+                    <h3 style="color:#fff;margin-bottom:10px;">Video Tidak Tersedia</h3>
+                    <p style="color:#aaa;">Coba episode lain atau server lain</p>
+                </div>`}
         </div>
         <div class="stream-info">
-            <h2 class="stream-title">${title}</h2>
-            ${servers.length > 0 ? `
-                <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 10px;"><i class="fas fa-server"></i> Server:</h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                        ${servers.map(server => `
-                            <button class="episode-btn" onclick="loadStream('${server.url || server.stream || server.slug}', '${series}', '${currentEpisode}')">
-                                ${server.name || server.server || server.label || 'Server'}
-                            </button>
-                        `).join('')}
+            <h2 class="stream-title"><i class="fas fa-play-circle" style="color:var(--primary);"></i> ${title}</h2>
+            
+            ${resolutions.length > 0 ? `
+                <div style="margin-bottom:20px;">
+                    <h3 style="margin-bottom:10px;"><i class="fas fa-cog"></i> Kualitas Video:</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                        ${resolutions.map(reso => {
+                            const isActive = reso === currentReso;
+                            const resoLinks = streamInfo.streams[reso];
+                            const resoUrl = resoLinks && resoLinks.length > 0 ? resoLinks[0].link : '';
+                            return resoUrl ? `
+                                <button class="episode-btn ${isActive ? 'active' : ''}" 
+                                    onclick="switchResolution('${resoUrl}', '${reso}', this)">
+                                    ${reso}
+                                </button>
+                            ` : '';
+                        }).join('')}
                     </div>
                 </div>
             ` : ''}
+            
+            ${streamUrl ? `
+                <div style="margin-bottom:20px;padding:15px;background:var(--light);border-radius:8px;">
+                    <p style="font-size:0.9rem;color:var(--gray);margin-bottom:8px;"><i class="fas fa-link"></i> Video URL:</p>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <input type="text" value="${streamUrl}" readonly style="flex:1;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:0.85rem;background:#fff;">
+                        <button class="episode-btn" onclick="copyUrl('${streamUrl}')" title="Copy URL">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <a href="${streamUrl}" target="_blank" class="episode-btn" title="Download">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                </div>
+            ` : ''}
+            
             ${episodes.length > 0 ? `
                 <div class="stream-episodes">
                     <h3><i class="fas fa-list"></i> Episode Lainnya</h3>
@@ -515,6 +570,38 @@ function renderStream(streamData, series, currentEpisode) {
             ` : ''}
         </div>
     `;
+}
+
+// Switch video resolution
+function switchResolution(url, reso, btn) {
+    const video = document.getElementById('videoPlayer');
+    if (video) {
+        const currentTime = video.currentTime;
+        video.src = url;
+        video.load();
+        video.currentTime = currentTime;
+        video.play();
+    }
+    
+    // Update active button
+    document.querySelectorAll('.episode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+// Copy URL to clipboard
+function copyUrl(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        alert('URL berhasil disalin!');
+    }).catch(() => {
+        // Fallback
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('URL berhasil disalin!');
+    });
 }
 
 function showError(message) {
