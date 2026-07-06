@@ -3,184 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IndoAnime - Download & Streaming Anime Subtitle Indonesia</title>
+    <title>AniVerse - Streaming Anime Subtitle Indonesia</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Top Bar -->
-    <div class="topbar">
-        <div class="container">
-            <div class="topbar-content">
-                <div class="topbar-left">
-                    <a href="#"><i class="fab fa-telegram"></i> Telegram</a>
-                    <span class="topbar-divider">|</span>
-                    <span><i class="fas fa-rss"></i> RSS Feed</span>
-                </div>
-                <div class="topbar-right">
-                    <span id="currentDate"></span>
-                </div>
-            </div>
-        </div>
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-orb orb-3"></div>
     </div>
 
     <!-- Header -->
-    <header class="header">
+    <header class="header" id="header">
         <div class="container">
-            <div class="header-content">
+            <div class="header-inner">
                 <a href="#" class="logo" onclick="showHome()">
-                    <span class="logo-icon">▶</span>
-                    <span class="logo-text">Indo<span class="logo-highlight">Anime</span></span>
+                    <div class="logo-glow">
+                        <i class="fas fa-meteor"></i>
+                    </div>
+                    <span>Ani<span class="gradient-text">Verse</span></span>
                 </a>
-                <nav class="main-nav" id="mainNav">
+                
+                <nav class="nav" id="mainNav">
                     <a href="#" onclick="showHome()" class="nav-link active" id="nav-home">
-                        <i class="fas fa-home"></i> Beranda
+                        <i class="fas fa-compass"></i> Beranda
                     </a>
                     <a href="#" onclick="showOngoing()" class="nav-link" id="nav-ongoing">
-                        <i class="fas fa-tv"></i> Ongoing
+                        <i class="fas fa-bolt"></i> Ongoing
                     </a>
                     <a href="#" onclick="showSchedule()" class="nav-link" id="nav-schedule">
-                        <i class="fas fa-calendar"></i> Jadwal
+                        <i class="fas fa-calendar-week"></i> Jadwal
                     </a>
                     <a href="#" onclick="showAnimeList()" class="nav-link" id="nav-list">
-                        <i class="fas fa-list"></i> Daftar Anime
+                        <i class="fas fa-layer-group"></i> Daftar
                     </a>
                 </nav>
-                <div class="header-right">
-                    <div class="search-toggle" onclick="toggleSearch()">
-                        <i class="fas fa-search"></i>
+
+                <div class="header-actions">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="Cari anime favorit..." onkeypress="handleSearch(event)">
+                        <button onclick="searchAnime()"><i class="fas fa-arrow-right"></i></button>
                     </div>
-                    <div class="mobile-toggle" onclick="toggleMobileMenu()">
+                    <button class="btn-icon mobile-menu-btn" onclick="toggleMobile()">
                         <i class="fas fa-bars"></i>
-                    </div>
-                </div>
-            </div>
-            <!-- Search Box -->
-            <div class="search-box" id="searchBox">
-                <div class="search-inner">
-                    <input type="text" id="searchInput" placeholder="Cari anime..." onkeypress="handleSearch(event)">
-                    <button onclick="searchAnime()">
-                        <i class="fas fa-search"></i> Cari
                     </button>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Mobile Navigation -->
+    <!-- Mobile Nav -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobile()"></div>
     <nav class="mobile-nav" id="mobileNav">
-        <a href="#" onclick="showHome()"><i class="fas fa-home"></i> Beranda</a>
-        <a href="#" onclick="showOngoing()"><i class="fas fa-tv"></i> Ongoing</a>
-        <a href="#" onclick="showSchedule()"><i class="fas fa-calendar"></i> Jadwal</a>
-        <a href="#" onclick="showAnimeList()"><i class="fas fa-list"></i> Daftar Anime</a>
+        <div class="mobile-nav-header">
+            <span class="logo"><i class="fas fa-meteor"></i> Ani<span class="gradient-text">Verse</span></span>
+            <button class="btn-icon" onclick="toggleMobile()"><i class="fas fa-times"></i></button>
+        </div>
+        <a href="#" onclick="showHome()"><i class="fas fa-compass"></i> Beranda</a>
+        <a href="#" onclick="showOngoing()"><i class="fas fa-bolt"></i> Ongoing</a>
+        <a href="#" onclick="showSchedule()"><i class="fas fa-calendar-week"></i> Jadwal</a>
+        <a href="#" onclick="showAnimeList()"><i class="fas fa-layer-group"></i> Daftar Anime</a>
     </nav>
 
     <!-- Main Content -->
     <main class="main">
         <!-- Loading -->
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
+        <div class="loader" id="loader">
+            <div class="loader-spinner"></div>
         </div>
 
-        <!-- Hero Slider -->
-        <section class="hero-section" id="heroSection">
+        <!-- Hero -->
+        <section class="hero" id="heroSection">
             <div class="container">
-                <div class="hero-slider" id="heroSlider">
-                    <!-- Slider content loaded dynamically -->
-                </div>
+                <div class="hero-wrapper" id="heroSlider"></div>
             </div>
         </section>
 
-        <!-- Latest Update Section -->
+        <!-- Latest -->
         <section class="section" id="latestSection">
             <div class="container">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fas fa-clock"></i> Update Terbaru
-                    </h2>
+                <div class="section-head">
+                    <div class="section-title-wrap">
+                        <div class="section-icon"><i class="fas fa-sparkles fa-star"></i></div>
+                        <h2>Update Terbaru</h2>
+                    </div>
                 </div>
-                <div class="anime-grid" id="latestAnime">
-                    <!-- Latest anime loaded here -->
-                </div>
-                <div class="pagination" id="latestPagination"></div>
+                <div class="grid" id="latestAnime"></div>
+                <div class="paginations" id="latestPagination"></div>
             </div>
         </section>
 
-        <!-- Ongoing Section -->
-        <section class="section" id="ongoingSection" style="display:none;">
+        <!-- Ongoing -->
+        <section class="section" id="ongoingSection" style="display:none">
             <div class="container">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fas fa-tv"></i> Ongoing Series
-                    </h2>
-                    <a href="#" onclick="showSchedule()" class="schedule-link">
-                        <i class="fas fa-calendar"></i> Lihat Jadwal
-                    </a>
+                <div class="section-head">
+                    <div class="section-title-wrap">
+                        <div class="section-icon"><i class="fas fa-bolt"></i></div>
+                        <h2>Ongoing Series</h2>
+                    </div>
+                    <a href="#" onclick="showSchedule()" class="section-link"><i class="fas fa-calendar"></i> Lihat Jadwal</a>
                 </div>
-                <div class="anime-grid ongoing-grid" id="ongoingAnime">
-                    <!-- Ongoing anime loaded here -->
-                </div>
+                <div class="grid ongoing" id="ongoingAnime"></div>
             </div>
         </section>
 
-        <!-- Schedule Section -->
-        <section class="section" id="scheduleSection" style="display:none;">
+        <!-- Schedule -->
+        <section class="section" id="scheduleSection" style="display:none">
             <div class="container">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fas fa-calendar"></i> Jadwal Rilis Anime
-                    </h2>
+                <div class="section-head">
+                    <div class="section-title-wrap">
+                        <div class="section-icon"><i class="fas fa-calendar-week"></i></div>
+                        <h2>Jadwal Rilis</h2>
+                    </div>
                 </div>
-                <div class="schedule-container" id="scheduleAnime">
-                    <!-- Schedule loaded here -->
-                </div>
+                <div class="schedule-grid" id="scheduleAnime"></div>
             </div>
         </section>
 
-        <!-- Anime List Section -->
-        <section class="section" id="animeListSection" style="display:none;">
+        <!-- Anime List -->
+        <section class="section" id="animeListSection" style="display:none">
             <div class="container">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fas fa-list"></i> Daftar Anime
-                    </h2>
+                <div class="section-head">
+                    <div class="section-title-wrap">
+                        <div class="section-icon"><i class="fas fa-layer-group"></i></div>
+                        <h2>Daftar Anime</h2>
+                    </div>
                 </div>
-                <div class="anime-list-container" id="animeList">
-                    <!-- Anime list loaded here -->
-                </div>
+                <div class="list-container" id="animeList"></div>
             </div>
         </section>
 
-        <!-- Search Results Section -->
-        <section class="section" id="searchSection" style="display:none;">
+        <!-- Search -->
+        <section class="section" id="searchSection" style="display:none">
             <div class="container">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fas fa-search"></i> Hasil Pencarian: <span id="searchQuery"></span>
-                    </h2>
+                <div class="section-head">
+                    <div class="section-title-wrap">
+                        <div class="section-icon"><i class="fas fa-search"></i></div>
+                        <h2>Hasil: <span id="searchQuery" class="gradient-text"></span></h2>
+                    </div>
                 </div>
-                <div class="anime-grid" id="searchResults">
-                    <!-- Search results loaded here -->
-                </div>
+                <div class="grid" id="searchResults"></div>
             </div>
         </section>
 
-        <!-- Detail Section -->
-        <section class="section" id="detailSection" style="display:none;">
-            <div class="container">
-                <div id="animeDetail">
-                    <!-- Detail loaded here -->
-                </div>
-            </div>
+        <!-- Detail -->
+        <section class="section" id="detailSection" style="display:none">
+            <div class="container" id="animeDetail"></div>
         </section>
 
-        <!-- Stream Section -->
-        <section class="section" id="streamSection" style="display:none;">
-            <div class="container">
-                <div id="streamContainer">
-                    <!-- Stream loaded here -->
-                </div>
-            </div>
+        <!-- Stream -->
+        <section class="section" id="streamSection" style="display:none">
+            <div class="container" id="streamContainer"></div>
         </section>
     </main>
 
@@ -188,48 +164,49 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-grid">
-                <div class="footer-col">
-                    <div class="footer-logo">
-                        <span class="logo-icon">▶</span>
-                        <span class="logo-text">Indo<span class="logo-highlight">Anime</span></span>
+                <div class="footer-brand">
+                    <div class="logo" style="font-size:1.4rem;margin-bottom:12px">
+                        <div class="logo-glow"><i class="fas fa-meteor"></i></div>
+                        <span>Ani<span class="gradient-text">Verse</span></span>
                     </div>
-                    <p>Website streaming dan download anime subtitle Indonesia terlengkap dan terupdate.</p>
+                    <p>Platform streaming anime subtitle Indonesia dengan koleksi terlengkap dan update setiap hari.</p>
                 </div>
-                <div class="footer-col">
-                    <h4>Menu</h4>
+                <div>
+                    <h4>Navigasi</h4>
                     <ul>
                         <li><a href="#" onclick="showHome()">Beranda</a></li>
                         <li><a href="#" onclick="showOngoing()">Ongoing</a></li>
-                        <li><a href="#" onclick="showSchedule()">Jadwal Rilis</a></li>
+                        <li><a href="#" onclick="showSchedule()">Jadwal</a></li>
                         <li><a href="#" onclick="showAnimeList()">Daftar Anime</a></li>
                     </ul>
                 </div>
-                <div class="footer-col">
-                    <h4>Genre</h4>
+                <div>
+                    <h4>Genre Populer</h4>
                     <ul>
                         <li><a href="#">Action</a></li>
+                        <li><a href="#">Isekai</a></li>
                         <li><a href="#">Romance</a></li>
                         <li><a href="#">Comedy</a></li>
-                        <li><a href="#">Isekai</a></li>
                     </ul>
                 </div>
-                <div class="footer-col">
-                    <h4>Ikuti Kami</h4>
-                    <div class="social-links">
+                <div>
+                    <h4>Hubungi Kami</h4>
+                    <div class="socials">
                         <a href="#"><i class="fab fa-telegram"></i></a>
+                        <a href="#"><i class="fab fa-discord"></i></a>
                         <a href="#"><i class="fab fa-instagram"></i></a>
                         <a href="#"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
             </div>
-            <div class="footer-bottom">
-                <p>© 2026 IndoAnime. All rights reserved. | API by Sonzai X</p>
+            <div class="footer-copy">
+                <p>&copy; 2026 AniVerse &mdash; Powered by Sonzai X API</p>
             </div>
         </div>
     </footer>
 
-    <!-- Back to Top -->
-    <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <!-- Scroll Top -->
+    <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
         <i class="fas fa-chevron-up"></i>
     </button>
 
