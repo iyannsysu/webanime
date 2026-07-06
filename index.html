@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="IndoAnime - Streaming Anime Sub Indo" content="width=device-width, initial-scale=1.0">
+    <title>IndoAnime - Streaming Anime Sub Indo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo" onclick="showHome()">
+                    <i class="fas fa-play-circle"></i>
+                    <span>IndoAnime</span>
+                </a>
+                <nav class="nav">
+                    <a href="#" onclick="showHome()" class="active" id="nav-home">
+                        <i class="fas fa-home"></i> Beranda
+                    </a>
+                    <a href="#" onclick="showOngoing()" id="nav-ongoing">
+                        <i class="fas fa-tv"></i> Ongoing
+                    </a>
+                    <a href="#" onclick="showSchedule()" id="nav-schedule">
+                        <i class="fas fa-calendar"></i> Jadwal
+                    </a>
+                    <a href="#" onclick="showAnimeList()" id="nav-list">
+                        <i class="fas fa-list"></i> Daftar Anime
+                    </a>
+                </nav>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Cari anime..." onkeypress="handleSearch(event)">
+                    <button onclick="searchAnime()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <button class="mobile-menu" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation -->
+    <nav class="mobile-nav" id="mobileNav">
+        <a href="#" onclick="showHome()"><i class="fas fa-home"></i> Beranda</a>
+        <a href="#" onclick="showOngoing()"><i class="fas fa-tv"></i> Ongoing</a>
+        <a href="#" onclick="showSchedule()"><i class="fas fa-calendar"></i> Jadwal</a>
+        <a href="#" onclick="showAnimeList()"><i class="fas fa-list"></i> Daftar Anime</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero" id="heroSection">
+            <div class="hero-slider" id="heroSlider">
+                <!-- Hero content will be loaded here -->
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 id="heroTitle">Selamat Datang di IndoAnime</h1>
+                <p id="heroDesc">Nonton anime subtitle Indonesia terlengkap dan terbaru</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary" onclick="showHome()">
+                        <i class="fas fa-play"></i> Mulai Nonton
+                    </button>
+                    <button class="btn btn-secondary" onclick="showAnimeList()">
+                        <i class="fas fa-list"></i> Lihat Daftar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading Indicator -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Memuat data...</p>
+        </div>
+
+        <!-- Content Sections -->
+        <div id="contentArea">
+            <!-- Latest Update Section -->
+            <section class="section" id="latestSection">
+                <div class="container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-clock"></i> Update Terbaru</h2>
+                        <a href="#" onclick="showHome()" class="see-all">Lihat Semua <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="anime-grid" id="latestAnime">
+                        <!-- Latest anime will be loaded here -->
+                    </div>
+                    <div class="pagination" id="latestPagination">
+                        <!-- Pagination will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Ongoing Section -->
+            <section class="section" id="ongoingSection" style="display:none;">
+                <div class="container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-tv"></i> Anime Ongoing</h2>
+                    </div>
+                    <div class="anime-grid" id="ongoingAnime">
+                        <!-- Ongoing anime will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Schedule Section -->
+            <section class="section" id="scheduleSection" style="display:none;">
+                <div class="container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-calendar"></i> Jadwal Rilis Anime</h2>
+                    </div>
+                    <div class="schedule-grid" id="scheduleAnime">
+                        <!-- Schedule will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Anime List Section -->
+            <section class="section" id="animeListSection" style="display:none;">
+                <div class="container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-list"></i> Daftar Anime</h2>
+                    </div>
+                    <div class="anime-list-container" id="animeList">
+                        <!-- Anime list will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Results Section -->
+            <section class="section" id="searchSection" style="display:none;">
+                <div class="container">
+                    <div class="section-header">
+                        <h2><i class="fas fa-search"></i> Hasil Pencarian: <span id="searchQuery"></span></h2>
+                    </div>
+                    <div class="anime-grid" id="searchResults">
+                        <!-- Search results will be loaded here -->
+                    </div>
+                    <div class="pagination" id="searchPagination">
+                        <!-- Pagination will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Anime Detail Section -->
+            <section class="section" id="detailSection" style="display:none;">
+                <div class="container">
+                    <div class="anime-detail" id="animeDetail">
+                        <!-- Anime detail will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Streaming Section -->
+            <section class="section" id="streamSection" style="display:none;">
+                <div class="container">
+                    <div class="stream-container" id="streamContainer">
+                        <!-- Streaming content will be loaded here -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3><i class="fas fa-play-circle"></i> IndoAnime</h3>
+                    <p>Website streaming anime subtitle Indonesia terlengkap. Nikmati koleksi anime terbaru dan terpopuler.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="#" onclick="showHome()">Beranda</a></li>
+                        <li><a href="#" onclick="showOngoing()">Anime Ongoing</a></li>
+                        <li><a href="#" onclick="showSchedule()">Jadwal Rilis</a></li>
+                        <li><a href="#" onclick="showAnimeList()">Daftar Anime</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Genre Populer</h4>
+                    <ul>
+                        <li><a href="#">Action</a></li>
+                        <li><a href="#">Romance</a></li>
+                        <li><a href="#">Comedy</a></li>
+                        <li><a href="#">Fantasy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Ikuti Kami</h4>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 IndoAnime. All rights reserved. | API by Sonzai X</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
