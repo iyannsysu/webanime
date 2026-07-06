@@ -5,23 +5,22 @@ const API = 'https://api.sonzaix.indevs.in/anime';
 let currentSeries = '';
 let heroIdx = 0;
 let heroTimer;
+let searchTimer = null;
 
-// Placeholder image (inline SVG)
-const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect fill='%2312121f' width='300' height='400'/%3E%3Ctext fill='%236b6b80' font-family='sans-serif' font-size='16' x='50%25' y='48%25' text-anchor='middle'%3E%3Ci class='fas fa-image'%3E%3C/i%3E%3C/text%3E%3Ctext fill='%236b6b80' font-family='sans-serif' font-size='12' x='50%25' y='55%25' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
+// Placeholder
+const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect fill='%2312121f' width='300' height='400'/%3E%3Ctext fill='%236b6b80' font-family='sans-serif' font-size='40' x='50%25' y='45%25' text-anchor='middle'%3E🎥%3C/text%3E%3Ctext fill='%236b6b80' font-family='sans-serif' font-size='14' x='50%25' y='58%25' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
 
-// Fix image URL (add proxy for problematic URLs)
+// Fix image URL
 function fixImg(url) {
     if (!url) return PLACEHOLDER;
-    // Remove i0.wp.com proxy wrapper if present
-    let fixed = url.replace(/https:\/\/i0\.wp\.com\//, 'https://');
-    // Ensure HTTPS
+    let fixed = url.replace(/https:\/\/i\d\.wp\.com\//, 'https://');
     if (fixed.startsWith('http://')) fixed = fixed.replace('http://', 'https://');
     return fixed;
 }
 
-// Image error handler
 function imgError(img) {
-    img.onerror = null;
+    if (img.dataset.fallback) return;
+    img.dataset.fallback = '1';
     img.src = PLACEHOLDER;
     img.style.objectFit = 'contain';
     img.style.padding = '20px';
@@ -32,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHome();
     initScroll();
     initHeader();
+    initSearchSuggest();
 });
 
 function initScroll() {
@@ -45,6 +45,85 @@ function initHeader() {
     window.addEventListener('scroll', () => {
         document.getElementById('header').classList.toggle('scrolled', window.scrollY > 50);
     });
+}
+
+// Live Search Suggestion
+function initSearchSuggest() {
+    const input = document.getElementById('searchInput');
+    const box = document.getElementById('suggestBox');
+    
+    input.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        const q = input.value.trim();
+        if (q.length < 2) {
+            box.style.display = 'none';
+            return;
+        }
+        searchTimer = setTimeout(() => loadSuggest(q), 400);
+    });
+
+    input.addEventListener('focus', () => {
+        if (input.value.trim().length >= 2) {
+            box.style.display = 'block';
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-wrapper')) {
+            box.style.display = 'none';
+        }
+    });
+}
+
+async function loadSuggest(query) {
+    const box = document.getElementById('suggestBox');
+    try {
+        const res = await fetch(`${API}/search?query=${encodeURIComponent(query)}&page=1`);
+        const data = await res.json();
+        
+        let results = [];
+        if (data?.data) {
+            data.data.forEach(g => {
+                if (g.result) results = results.concat(g.result);
+            });
+        }
+        
+        results = results.slice(0, 8);
+        
+        if (!results.length) {
+            box.innerHTML = '<div class="suggest-empty">Anime tidak ditemukan</div>';
+            box.style.display = 'block';
+            return;
+        }
+
+        box.innerHTML = results.map(a => {
+            const slug = a.url || a.id;
+            const title = a.judul || a.title || '';
+            const cover = fixImg(a.cover);
+            const score = a.score || '';
+            const status = a.status || '';
+
+            return `
+                <div class="suggest-item" onclick="showDetail('${slug}')">
+                    <img src="${cover}" alt="" onerror="imgError(this)">
+                    <div class="suggest-info">
+                        <div class="suggest-title">${title}</div>
+                        <div class="suggest-meta">
+                            ${score ? `<span><i class="fas fa-star"></i> ${score}</span>` : ''}
+                            ${status ? `<span>${status}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('') + `
+            <div class="suggest-all" onclick="searchAnime()">
+                <i class="fas fa-search"></i> Lihat semua hasil "<strong>${document.getElementById('searchInput').value}</strong>"
+            </div>
+        `;
+        box.style.display = 'block';
+    } catch (e) {
+        box.style.display = 'none';
+    }
 }
 
 // Loader
@@ -90,6 +169,7 @@ function showSearch(q) {
     document.getElementById('searchQuery').textContent = q;
     loadSearch(q);
     closeMob();
+    document.getElementById('suggestBox').style.display = 'none';
 }
 
 function showDetail(series) {
@@ -98,6 +178,7 @@ function showDetail(series) {
     currentSeries = series;
     loadDetail(series);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('suggestBox').style.display = 'none';
 }
 
 function showStream(slug, series, ep) {
@@ -131,6 +212,13 @@ function toggleMobile() {
 function closeMob() {
     document.getElementById('mobileNav').classList.remove('active');
     document.getElementById('mobileOverlay').classList.remove('active');
+}
+
+function toggleMobileSearch() {
+    document.querySelector('.search-wrapper').classList.toggle('mob-show');
+    if (document.querySelector('.search-wrapper').classList.contains('mob-show')) {
+        document.getElementById('searchInput').focus();
+    }
 }
 
 // Search
@@ -168,7 +256,11 @@ async function loadHome(page = 1) {
 
 async function loadOngoing() {
     const d = await api('/ongoing');
-    if (d?.data) renderCards(d.data, 'ongoingAnime');
+    if (d?.data) {
+        // Sort by id descending (newest first)
+        const sorted = [...d.data].sort((a, b) => (b.id || 0) - (a.id || 0));
+        renderCards(sorted, 'ongoingAnime');
+    }
 }
 
 async function loadSchedule() {
@@ -291,26 +383,48 @@ function renderCards(list, containerId) {
     }).join('');
 }
 
-// Render Schedule
+// Render Schedule - FIXED
 function renderSchedule(data) {
     const c = document.getElementById('scheduleAnime');
     if (!data?.length) {
         c.innerHTML = `<div class="error-box"><i class="fas fa-calendar-times"></i><h3>Jadwal tidak tersedia</h3></div>`;
         return;
     }
-    c.innerHTML = data.map(day => {
+
+    // Get current day index (0=Senin, 6=Minggu)
+    const dayOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const today = new Date();
+    const todayIdx = (today.getDay() + 6) % 7; // Convert JS day (0=Sun) to Mon=0
+
+    // Sort so today comes first
+    const sorted = [...data].sort((a, b) => {
+        const aIdx = dayOrder.indexOf(a.day || a.hari || '');
+        const bIdx = dayOrder.indexOf(b.day || b.hari || '');
+        const aShift = (aIdx - todayIdx + 7) % 7;
+        const bShift = (bIdx - todayIdx + 7) % 7;
+        return aShift - bShift;
+    });
+
+    c.innerHTML = sorted.map((day, dayI) => {
         const name = day.day || day.hari || day.title || '';
-        const list = day.anime || day.list || day.data || [];
+        const date = day.date || '';
+        const list = day.animeList || day.anime || day.list || day.data || [];
+        const isToday = dayOrder.indexOf(name) === todayIdx;
+
         return `
-            <div class="schedule-card">
-                <div class="schedule-header"><i class="fas fa-calendar-day"></i> ${name}</div>
+            <div class="schedule-card ${isToday ? 'schedule-today' : ''}">
+                <div class="schedule-header">
+                    <i class="fas fa-calendar-day"></i> 
+                    ${name} ${date ? `<span class="schedule-date">${date}</span>` : ''}
+                    ${isToday ? '<span class="schedule-badge">Hari Ini</span>' : ''}
+                </div>
                 <div class="schedule-body">
                     ${list.length ? list.map(a => `
-                        <div class="schedule-item" onclick="showDetail('${a.url || a.slug || a.id}')">
-                            <img src="${fixImg(a.cover || a.thumbnail)}" alt="${a.judul || a.title}" class="schedule-img" onerror="imgError(this)">
+                        <div class="schedule-item" onclick="showDetail('${a.link || a.url || a.slug || a.id}')">
+                            <img src="${fixImg(a.cover || a.thumbnail)}" alt="${a.anime_name || a.judul || a.title}" class="schedule-img" onerror="imgError(this)">
                             <div class="schedule-info">
-                                <h4>${a.judul || a.title || ''}</h4>
-                                <p>${a.time || a.waktu || a.episode || ''}</p>
+                                <h4>${a.anime_name || a.judul || a.title || ''}</h4>
+                                <p><i class="fas fa-clock"></i> ${a.lastup || a.time || a.waktu || 'Upcoming'}</p>
                             </div>
                         </div>
                     `).join('') : '<p style="color:var(--text3);padding:12px;">Tidak ada jadwal</p>'}
