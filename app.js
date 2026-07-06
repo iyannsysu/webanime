@@ -75,6 +75,7 @@ function showAnimeDetail(series) {
     document.getElementById('detailSection').style.display = 'block';
     currentSeries = series;
     loadAnimeDetail(series);
+    window.scrollTo(0, 0);
 }
 
 function showStream(slug, series, episode) {
@@ -82,6 +83,7 @@ function showStream(slug, series, episode) {
     document.getElementById('streamSection').style.display = 'block';
     currentAnimeSlug = slug;
     loadStream(slug, series, episode);
+    window.scrollTo(0, 0);
 }
 
 function hideAllSections() {
@@ -154,9 +156,6 @@ async function loadLatestAnime(page = 1) {
     const data = await fetchAPI('/home', { page });
     if (data && data.data) {
         renderAnimeGrid(data.data, 'latestAnime');
-        if (data.totalPages || data.lastPage) {
-            renderPagination(data.totalPages || data.lastPage, page, 'latestPagination', 'loadLatestAnime');
-        }
     }
 }
 
@@ -198,34 +197,30 @@ async function loadSearchResults(query, page = 1) {
     currentSearchPage = page;
     const data = await fetchAPI('/search', { query, page });
     if (data && data.data) {
-        renderAnimeGrid(data.data, 'searchResults');
-        if (data.totalPages || data.lastPage) {
-            renderPagination(data.totalPages || data.lastPage, page, 'searchPagination', 'loadSearchResultsWrapper');
-        }
+        // Search returns grouped data
+        let allResults = [];
+        data.data.forEach(group => {
+            if (group.result) {
+                allResults = allResults.concat(group.result);
+            }
+        });
+        renderAnimeGrid(allResults, 'searchResults');
     }
-}
-
-// Wrapper for search pagination
-function loadSearchResultsWrapper(page) {
-    loadSearchResults(currentSearchQuery, page);
 }
 
 // Load Anime Detail
 async function loadAnimeDetail(series) {
     const data = await fetchAPI('/detail', { series });
     if (data && data.data) {
-        renderAnimeDetail(data.data);
-    } else if (data) {
-        renderAnimeDetail(data);
+        const anime = Array.isArray(data.data) ? data.data[0] : data.data;
+        renderAnimeDetail(anime);
     }
 }
 
 // Load Stream
 async function loadStream(slug, series, episode) {
     const data = await fetchAPI('/stream', { slug, series, episode });
-    if (data && data.data) {
-        renderStream(data.data, series, episode);
-    } else if (data) {
+    if (data) {
         renderStream(data, series, episode);
     }
 }
@@ -249,8 +244,9 @@ function renderAnimeGrid(animeList, containerId) {
         const title = anime.judul || anime.title || 'Untitled';
         const cover = anime.cover || anime.thumbnail || anime.image || anime.poster;
         const type = anime.type || '';
-        const score = anime.score || '';
+        const score = anime.score || anime.rating || '';
         const episode = anime.lastch || anime.episode || anime.total_episode || '';
+        const genres = anime.genre || [];
         
         return `
             <div class="anime-card" onclick="showAnimeDetail('${slug}')" style="animation-delay: ${index * 0.05}s">
@@ -281,7 +277,7 @@ function renderHeroSlider(animeList) {
     function updateHero() {
         const anime = animeList[currentIndex];
         document.getElementById('heroTitle').textContent = anime.judul || anime.title;
-        document.getElementById('heroDesc').textContent = anime.sinopsis || anime.description || 'Nonton anime subtitle Indonesia terlengkap';
+        document.getElementById('heroDesc').textContent = anime.sinopsis ? anime.sinopsis.substring(0, 150) + '...' : 'Nonton anime subtitle Indonesia terlengkap';
         
         const cover = anime.cover || anime.thumbnail || anime.image || anime.poster;
         if (cover) {
@@ -390,11 +386,12 @@ function renderAnimeDetail(anime) {
         return;
     }
 
-    const episodes = anime.episodes || [];
+    const chapters = anime.chapter || anime.episodes || [];
     const genres = anime.genre || anime.genres || [];
     const title = anime.judul || anime.title || 'Untitled';
     const cover = anime.cover || anime.thumbnail || anime.image || anime.poster;
     const synopsis = anime.sinopsis || anime.description || 'Sinopsis tidak tersedia.';
+    const seriesId = anime.series_id || anime.url || anime.slug || currentSeries;
     
     container.innerHTML = `
         <button class="back-btn" onclick="goBack()">
@@ -412,10 +409,10 @@ function renderAnimeDetail(anime) {
                 <div class="detail-meta">
                     ${anime.status ? `<div class="detail-meta-item"><i class="fas fa-info-circle"></i> ${anime.status}</div>` : ''}
                     ${anime.type ? `<div class="detail-meta-item"><i class="fas fa-tv"></i> ${anime.type}</div>` : ''}
-                    ${anime.score ? `<div class="detail-meta-item"><i class="fas fa-star"></i> ${anime.score}</div>` : ''}
-                    ${anime.rilis || anime.release || anime.aired ? `<div class="detail-meta-item"><i class="fas fa-calendar"></i> ${anime.rilis || anime.release || anime.aired}</div>` : ''}
-                    ${anime.studio ? `<div class="detail-meta-item"><i class="fas fa-film"></i> ${anime.studio}</div>` : ''}
-                    ${anime.total_episode ? `<div class="detail-meta-item"><i class="fas fa-list"></i> ${anime.total_episode} Episode</div>` : ''}
+                    ${anime.rating || anime.score ? `<div class="detail-meta-item"><i class="fas fa-star"></i> ${anime.rating || anime.score}</div>` : ''}
+                    ${anime.published || anime.rilis || anime.release ? `<div class="detail-meta-item"><i class="fas fa-calendar"></i> ${anime.published || anime.rilis || anime.release}</div>` : ''}
+                    ${anime.author || anime.studio ? `<div class="detail-meta-item"><i class="fas fa-film"></i> ${anime.author || anime.studio}</div>` : ''}
+                    ${chapters.length ? `<div class="detail-meta-item"><i class="fas fa-list"></i> ${chapters.length} Episode</div>` : ''}
                 </div>
                 <div class="detail-genres">
                     ${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
@@ -426,13 +423,12 @@ function renderAnimeDetail(anime) {
         <div class="detail-body">
             <h2 class="detail-section-title"><i class="fas fa-list-ol"></i> Daftar Episode</h2>
             <div class="episodes-grid">
-                ${episodes.length > 0 ? episodes.map(ep => {
-                    const epSlug = ep.slug || ep.url || ep.id;
-                    const epTitle = ep.title || ep.judul || `Episode ${ep.episode || ep.number || ''}`;
-                    const epNumber = ep.episode || ep.number || epTitle;
+                ${chapters.length > 0 ? chapters.map(ep => {
+                    const epSlug = ep.url || ep.slug || ep.id;
+                    const epTitle = ep.ch || ep.title || ep.judul || `Episode ${ep.episode || ep.number || ''}`;
                     
                     return `
-                        <button class="episode-btn" onclick="showStream('${epSlug}', '${anime.url || anime.slug || anime.id}', '${epNumber}')">
+                        <button class="episode-btn" onclick="showStream('${epSlug}', '${seriesId}', '${epTitle}')">
                             ${epTitle}
                         </button>
                     `;
@@ -456,24 +452,34 @@ function renderStream(streamData, series, currentEpisode) {
         return;
     }
 
-    const streamUrl = streamData.url || streamData.stream || streamData.video || streamData.embed || streamData.link || '';
-    const episodes = streamData.episodes || [];
-    const title = streamData.title || streamData.judul || `Episode ${currentEpisode}`;
-    const servers = streamData.servers || streamData.server || [];
+    // Get stream URL from various possible fields
+    let streamUrl = '';
+    if (streamData.data) {
+        const d = streamData.data;
+        streamUrl = d.url || d.stream || d.video || d.embed || d.link || d.iframe || '';
+        if (d.servers && d.servers.length > 0) {
+            streamUrl = d.servers[0].url || d.servers[0].stream || streamUrl;
+        }
+    } else {
+        streamUrl = streamData.url || streamData.stream || streamData.video || streamData.embed || streamData.link || '';
+    }
+    
+    const episodes = streamData.episodes || streamData.data?.episodes || [];
+    const servers = streamData.servers || streamData.data?.servers || streamData.data?.server || [];
+    const title = streamData.title || streamData.data?.title || streamData.data?.judul || `Episode ${currentEpisode}`;
 
     container.innerHTML = `
         <button class="back-btn" onclick="showAnimeDetail('${series}')">
             <i class="fas fa-arrow-left"></i> Kembali ke Detail
         </button>
         <div class="stream-video">
-            ${streamUrl.includes('youtube') || streamUrl.includes('youtu.be') ? 
-                `<iframe src="${streamUrl}" allowfullscreen></iframe>` :
+            ${streamUrl ? (
+                streamUrl.includes('youtube') || streamUrl.includes('youtu.be') ? 
+                    `<iframe src="${streamUrl}" allowfullscreen></iframe>` :
                 streamUrl.includes('.m3u8') || streamUrl.includes('.mp4') ?
-                `<video controls autoplay><source src="${streamUrl}" type="video/mp4">Browser tidak mendukung video player</video>` :
-                streamUrl ?
-                `<iframe src="${streamUrl}" allowfullscreen></iframe>` :
-                `<div class="no-image"><i class="fas fa-video-slash"></i><p>Video tidak tersedia</p></div>`
-            }
+                    `<video controls autoplay><source src="${streamUrl}" type="video/mp4">Browser tidak mendukung video player</video>` :
+                    `<iframe src="${streamUrl}" allowfullscreen></iframe>`
+            ) : `<div class="no-image" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;"><i class="fas fa-video-slash" style="font-size:3rem;margin-bottom:15px;"></i><p>Video tidak tersedia</p></div>`}
         </div>
         <div class="stream-info">
             <h2 class="stream-title">${title}</h2>
@@ -482,7 +488,7 @@ function renderStream(streamData, series, currentEpisode) {
                     <h3 style="margin-bottom: 10px;"><i class="fas fa-server"></i> Server:</h3>
                     <div style="display: flex; flex-wrap: wrap; gap: 10px;">
                         ${servers.map(server => `
-                            <button class="episode-btn" onclick="loadStream('${server.slug || server.url || server.link}', '${series}', '${currentEpisode}')">
+                            <button class="episode-btn" onclick="loadStream('${server.url || server.stream || server.slug}', '${series}', '${currentEpisode}')">
                                 ${server.name || server.server || server.label || 'Server'}
                             </button>
                         `).join('')}
@@ -494,8 +500,8 @@ function renderStream(streamData, series, currentEpisode) {
                     <h3><i class="fas fa-list"></i> Episode Lainnya</h3>
                     <div class="stream-episodes-grid">
                         ${episodes.map(ep => {
-                            const epSlug = ep.slug || ep.url || ep.id;
-                            const epNumber = ep.episode || ep.number || ep.title || '';
+                            const epSlug = ep.url || ep.slug || ep.id;
+                            const epNumber = ep.ch || ep.episode || ep.number || ep.title || '';
                             
                             return `
                                 <button class="stream-episode-btn ${String(epNumber) === String(currentEpisode) ? 'active' : ''}" 
@@ -509,46 +515,6 @@ function renderStream(streamData, series, currentEpisode) {
             ` : ''}
         </div>
     `;
-}
-
-function renderPagination(totalPages, currentPage, containerId, callbackName) {
-    const container = document.getElementById(containerId);
-    if (!totalPages || totalPages <= 1) {
-        container.innerHTML = '';
-        return;
-    }
-
-    let buttons = [];
-    
-    // Previous button
-    buttons.push(`<button ${currentPage === 1 ? 'disabled' : ''} onclick="${callbackName}(${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>`);
-    
-    // Page numbers
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, currentPage + 2);
-    
-    if (startPage > 1) {
-        buttons.push(`<button onclick="${callbackName}(1)">1</button>`);
-        if (startPage > 2) {
-            buttons.push(`<button disabled>...</button>`);
-        }
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-        buttons.push(`<button class="${i === currentPage ? 'active' : ''}" onclick="${callbackName}(${i})">${i}</button>`);
-    }
-    
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            buttons.push(`<button disabled>...</button>`);
-        }
-        buttons.push(`<button onclick="${callbackName}(${totalPages})">${totalPages}</button>`);
-    }
-    
-    // Next button
-    buttons.push(`<button ${currentPage === totalPages ? 'disabled' : ''} onclick="${callbackName}(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`);
-    
-    container.innerHTML = buttons.join('');
 }
 
 function showError(message) {
@@ -571,15 +537,4 @@ function goBack() {
     } else {
         showHome();
     }
-}
-
-// Utility Functions
-function formatNumber(num) {
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
-    }
-    return num;
 }
