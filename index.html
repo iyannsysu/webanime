@@ -43,10 +43,16 @@
                 </nav>
 
                 <div class="header-actions">
-                    <div class="search-container">
-                        <input type="text" id="searchInput" placeholder="Cari anime favorit..." onkeypress="handleSearch(event)">
-                        <button onclick="searchAnime()"><i class="fas fa-arrow-right"></i></button>
+                    <div class="search-wrapper">
+                        <div class="search-container">
+                            <input type="text" id="searchInput" placeholder="Cari anime favorit..." onkeypress="handleSearch(event)" autocomplete="off">
+                            <button onclick="searchAnime()"><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                        <div class="suggest-box" id="suggestBox"></div>
                     </div>
+                    <button class="btn-icon mobile-search-btn" onclick="toggleMobileSearch()">
+                        <i class="fas fa-search"></i>
+                    </button>
                     <button class="btn-icon mobile-menu-btn" onclick="toggleMobile()">
                         <i class="fas fa-bars"></i>
                     </button>
