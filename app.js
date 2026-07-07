@@ -6,6 +6,9 @@ let currentSeries = '';
 let heroIdx = 0;
 let heroTimer;
 let searchTimer = null;
+let ongoingRefreshTimer = null;
+let lastOngoingData = [];
+let autoRefreshInterval = 60000; // 1 menit
 
 // Placeholder
 const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect fill='%2312121f' width='300' height='400'/%3E%3Ctext fill='%236b6b80' font-family='sans-serif' font-size='40' x='50%25' y='45%25' text-anchor='middle'%3E🎥%3C/text%3E%3Ctext fill='%236b6b80' font-family='sans-serif' font-size='14' x='50%25' y='58%25' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
@@ -32,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initScroll();
     initHeader();
     initSearchSuggest();
+    startAutoRefresh();
 });
 
 function initScroll() {
@@ -44,6 +48,111 @@ function initScroll() {
 function initHeader() {
     window.addEventListener('scroll', () => {
         document.getElementById('header').classList.toggle('scrolled', window.scrollY > 50);
+    });
+}
+
+// Auto Refresh Ongoing Anime
+function startAutoRefresh() {
+    // Refresh setiap 1 menit
+    ongoingRefreshTimer = setInterval(() => {
+        refreshOngoingSilent();
+    }, autoRefreshInterval);
+    
+    // Update timer display setiap detik
+    setInterval(updateRefreshTimer, 1000);
+}
+
+async function refreshOngoingSilent() {
+    try {
+        const res = await fetch(`${API}/ongoing`);
+        const data = await res.json();
+        
+        if (data?.data) {
+            const newData = [...data.data].sort((a, b) => (b.id || 0) - (a.id || 0));
+            
+            // Cek apakah ada anime baru
+            if (lastOngoingData.length > 0) {
+                const newAnime = newData.filter(n => !lastOngoingData.some(o => o.id === n.id));
+                if (newAnime.length > 0) {
+                    showNewAnimeNotification(newAnime);
+                }
+            }
+            
+            lastOngoingData = newData;
+            
+            // Update tampilan ongoing di home
+            renderCards(newData.slice(0, 12), 'ongoingHomeAnime');
+            
+            // Update tampilan ongoing page jika sedang dibuka
+            if (document.getElementById('ongoingSection').style.display !== 'none') {
+                renderCards(newData, 'ongoingAnime');
+            }
+            
+            // Update timestamp
+            updateLastRefreshTime();
+        }
+    } catch (e) {
+        console.log('Auto refresh error:', e);
+    }
+}
+
+function updateLastRefreshTime() {
+    const el = document.getElementById('lastRefreshTime');
+    if (el) {
+        const now = new Date();
+        el.textContent = `Update: ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    }
+}
+
+function updateRefreshTimer() {
+    const el = document.getElementById('refreshCountdown');
+    if (el) {
+        // Hitung mundur dari interval
+        const now = Date.now();
+        const nextRefresh = Math.ceil(autoRefreshInterval / 1000);
+        el.textContent = `Auto refresh setiap ${autoRefreshInterval / 1000}s`;
+    }
+}
+
+function showNewAnimeNotification(newAnime) {
+    // Buat notifikasi
+    const notif = document.createElement('div');
+    notif.className = 'new-anime-notif';
+    notif.innerHTML = `
+        <div class="notif-content">
+            <div class="notif-icon"><i class="fas fa-bell"></i></div>
+            <div class="notif-text">
+                <strong>${newAnime.length} Anime Baru!</strong>
+                <p>${newAnime.map(a => a.judul).slice(0, 2).join(', ')}${newAnime.length > 2 ? '...' : ''}</p>
+            </div>
+            <button class="notif-close" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(notif);
+    
+    // Auto remove setelah 5 detik
+    setTimeout(() => {
+        if (notif.parentElement) {
+            notif.classList.add('notif-fade');
+            setTimeout(() => notif.remove(), 300);
+        }
+    }, 5000);
+}
+
+function manualRefresh() {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+        btn.disabled = true;
+    }
+    
+    refreshOngoingSilent().then(() => {
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            btn.disabled = false;
+        }
     });
 }
 
@@ -264,7 +373,9 @@ async function loadOngoingHome() {
     const d = await api('/ongoing');
     if (d?.data) {
         const sorted = [...d.data].sort((a, b) => (b.id || 0) - (a.id || 0));
+        lastOngoingData = sorted;
         renderCards(sorted.slice(0, 12), 'ongoingHomeAnime');
+        updateLastRefreshTime();
     }
 }
 
