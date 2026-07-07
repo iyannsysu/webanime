@@ -94,9 +94,16 @@
                 <div class="section-head">
                     <div class="section-title-wrap">
                         <div class="section-icon"><i class="fas fa-bolt"></i></div>
-                        <h2>Ongoing Anime</h2>
+                        <h2>Ongoing Anime <span class="live-badge"><span class="live-dot"></span> LIVE</span></h2>
                     </div>
-                    <a href="#" onclick="showOngoing()" class="section-link">Lihat Semua <i class="fas fa-arrow-right"></i></a>
+                    <div class="section-actions">
+                        <span class="refresh-info" id="lastRefreshTime"></span>
+                        <span class="refresh-info" id="refreshCountdown"></span>
+                        <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()" title="Refresh sekarang">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <a href="#" onclick="showOngoing()" class="section-link">Lihat Semua <i class="fas fa-arrow-right"></i></a>
+                    </div>
                 </div>
                 <div class="grid" id="ongoingHomeAnime"></div>
             </div>
