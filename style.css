@@ -1369,7 +1369,87 @@ button { cursor:pointer; font-family:inherit; }
 
 .url-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-/* ===== ERROR ===== */
+/* Episode Navigation */
+.ep-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.ep-nav-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius3);
+    color: var(--text);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.ep-nav-btn:hover:not(.disabled) {
+    background: rgba(124,92,252,0.15);
+    border-color: var(--accent);
+}
+
+.ep-nav-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.ep-nav-btn.home {
+    flex: 0 0 auto;
+    justify-content: center;
+    gap: 8px;
+    color: var(--accent);
+}
+
+.ep-nav-btn.home:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.ep-nav-btn.prev i,
+.ep-nav-btn.next i {
+    font-size: 1.2rem;
+    color: var(--accent);
+}
+
+.ep-nav-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ep-nav-label {
+    font-size: 0.7rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ep-nav-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.stream-ep-grid {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .ep-nav { flex-wrap: wrap; }
+    .ep-nav-btn.home { order: -1; width: 100%; }
+    .ep-nav-btn.prev, .ep-nav-btn.next { flex: 1; min-width: 45%; }
+    .ep-nav-title { max-width: 80px; font-size: 0.8rem; }
+}
 .error-box {
     text-align: center;
     padding: 60px 20px;
