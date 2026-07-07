@@ -3,6 +3,8 @@ const API = 'https://api.sonzaix.indevs.in/anime';
 
 // State
 let currentSeries = '';
+let currentChapters = [];
+let currentEpisodeIndex = -1;
 let heroIdx = 0;
 let heroTimer;
 let searchTimer = null;
@@ -290,9 +292,10 @@ function showDetail(series) {
     document.getElementById('suggestBox').style.display = 'none';
 }
 
-function showStream(slug, series, ep) {
+function showStream(slug, series, ep, epIndex) {
     hideAll();
     show('streamSection');
+    currentEpisodeIndex = epIndex !== undefined ? epIndex : -1;
     loadStream(slug, series, ep);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -622,6 +625,7 @@ function renderDetail(anime) {
         return;
     }
     const chapters = anime.chapter || [];
+    currentChapters = chapters; // Simpan untuk navigasi episode
     const genres = anime.genre || [];
     const title = anime.judul || anime.title || '';
     const cover = fixImg(anime.cover);
@@ -654,10 +658,10 @@ function renderDetail(anime) {
             <div class="detail-episodes">
                 <h2 class="detail-ep-title"><i class="fas fa-list-ol"></i> Daftar Episode</h2>
                 <div class="ep-grid">
-                    ${chapters.length ? chapters.map(ep => {
+                    ${chapters.length ? chapters.map((ep, idx) => {
                         const epSlug = ep.url || ep.id;
                         const epTitle = ep.ch || ep.title || '';
-                        return `<div class="ep-btn" onclick="showStream('${epSlug}', '${sid}', '${epTitle}')">${epTitle}</div>`;
+                        return `<div class="ep-btn" onclick="showStream('${epSlug}', '${sid}', '${epTitle}', ${idx})">${epTitle}</div>`;
                     }).join('') : '<p style="color:var(--text3)">Episode belum tersedia</p>'}
                 </div>
             </div>
@@ -692,8 +696,16 @@ function renderStream(data, series, ep) {
         }
     }
 
+    // Hitung episode prev/next
+    const totalEps = currentChapters.length;
+    const hasPrev = currentEpisodeIndex > 0;
+    const hasNext = currentEpisodeIndex >= 0 && currentEpisodeIndex < totalEps - 1;
+    
+    const prevEp = hasPrev ? currentChapters[currentEpisodeIndex - 1] : null;
+    const nextEp = hasNext ? currentChapters[currentEpisodeIndex + 1] : null;
+
     c.innerHTML = `
-        <div class="stream-back" onclick="showDetail('${series}')"><i class="fas fa-arrow-left"></i> Kembali</div>
+        <div class="stream-back" onclick="showDetail('${series}')"><i class="fas fa-arrow-left"></i> Kembali ke Detail</div>
         <div class="stream-card">
             <div class="stream-player">
                 ${url ?
@@ -703,6 +715,33 @@ function renderStream(data, series, ep) {
             </div>
             <div class="stream-body">
                 <h2 class="stream-title"><i class="fas fa-play-circle"></i> ${ep}</h2>
+                
+                <!-- Episode Navigation -->
+                <div class="ep-nav">
+                    <button class="ep-nav-btn prev ${!hasPrev ? 'disabled' : ''}" 
+                        onclick="${hasPrev ? `showStream('${prevEp.url || prevEp.id}', '${series}', '${prevEp.ch || prevEp.title}', ${currentEpisodeIndex - 1})` : ''}"
+                        ${!hasPrev ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i>
+                        <div class="ep-nav-info">
+                            <span class="ep-nav-label">Sebelumnya</span>
+                            <span class="ep-nav-title">${hasPrev ? (prevEp.ch || prevEp.title || '') : 'Tidak ada'}</span>
+                        </div>
+                    </button>
+                    <button class="ep-nav-btn home" onclick="showDetail('${series}')">
+                        <i class="fas fa-list"></i>
+                        <span>Daftar Episode</span>
+                    </button>
+                    <button class="ep-nav-btn next ${!hasNext ? 'disabled' : ''}" 
+                        onclick="${hasNext ? `showStream('${nextEp.url || nextEp.id}', '${series}', '${nextEp.ch || nextEp.title}', ${currentEpisodeIndex + 1})` : ''}"
+                        ${!hasNext ? 'disabled' : ''}>
+                        <div class="ep-nav-info" style="text-align:right">
+                            <span class="ep-nav-label">Selanjutnya</span>
+                            <span class="ep-nav-title">${hasNext ? (nextEp.ch || nextEp.title || '') : 'Tidak ada'}</span>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
                 ${resos.length ? `
                     <div class="stream-section">
                         <h4><i class="fas fa-cog"></i> Kualitas Video</h4>
@@ -721,6 +760,21 @@ function renderStream(data, series, ep) {
                             <input type="text" class="url-input" value="${url}" readonly>
                             <button class="url-btn" onclick="copyUrl('${url}')"><i class="fas fa-copy"></i></button>
                             <a href="${url}" target="_blank" class="url-btn"><i class="fas fa-download"></i></a>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Quick Episode Select -->
+                ${totalEps > 0 ? `
+                    <div class="stream-section">
+                        <h4><i class="fas fa-list"></i> Pilih Episode</h4>
+                        <div class="ep-grid stream-ep-grid">
+                            ${currentChapters.map((ep, idx) => {
+                                const epSlug = ep.url || ep.id;
+                                const epTitle = ep.ch || ep.title || '';
+                                return `<div class="ep-btn ${idx === currentEpisodeIndex ? 'active' : ''}" 
+                                    onclick="showStream('${epSlug}', '${series}', '${epTitle}', ${idx})">${epTitle}</div>`;
+                            }).join('')}
                         </div>
                     </div>
                 ` : ''}
@@ -756,6 +810,17 @@ function copyUrl(url) {
 }
 
 function goBack() {
-    if (currentSeries) showDetail(currentSeries);
-    else showHome();
+    if (document.getElementById('streamSection').style.display !== 'none') {
+        // Dari stream -> kembali ke detail
+        if (currentSeries) {
+            showDetail(currentSeries);
+        } else {
+            showHome();
+        }
+    } else if (document.getElementById('detailSection').style.display !== 'none') {
+        // Dari detail -> kembali ke beranda
+        showHome();
+    } else {
+        showHome();
+    }
 }
