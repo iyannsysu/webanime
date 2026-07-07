@@ -599,6 +599,163 @@ button { cursor:pointer; font-family:inherit; }
 
 .section-link:hover { color: var(--accent2); }
 
+.section-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.refresh-info {
+    font-size: 0.75rem;
+    color: var(--text3);
+}
+
+.refresh-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.refresh-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* New Anime Notification */
+.new-anime-notif {
+    position: fixed;
+    top: 90px;
+    right: 24px;
+    z-index: 9999;
+    animation: slideInRight 0.4s ease;
+}
+
+.new-anime-notif.notif-fade {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+.notif-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--bg2);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius2);
+    box-shadow: 0 12px 40px rgba(124,92,252,0.3);
+    min-width: 300px;
+    backdrop-filter: blur(20px);
+}
+
+.notif-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--grad);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1rem;
+    flex-shrink: 0;
+    animation: bellRing 0.5s ease;
+}
+
+@keyframes bellRing {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
+}
+
+.notif-text {
+    flex: 1;
+}
+
+.notif-text strong {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--accent2);
+    margin-bottom: 2px;
+}
+
+.notif-text p {
+    font-size: 0.8rem;
+    color: var(--text2);
+}
+
+.notif-close {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.notif-close:hover {
+    background: var(--bg4);
+    color: var(--text);
+}
+
+/* Live indicator */
+.live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(52,211,153,0); }
+}
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: rgba(52,211,153,0.15);
+    border: 1px solid rgba(52,211,153,0.3);
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--green);
+    text-transform: uppercase;
+}
+
 /* ===== GRID ===== */
 .grid {
     display: grid;
